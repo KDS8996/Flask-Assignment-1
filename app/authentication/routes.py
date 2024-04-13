@@ -1,12 +1,12 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask_login import login_user
 
 from forms import UserLoginForm
 from models import User, db, check_password_hash
 
+auth = Blueprint('auth', __name__, template_folder='auth_templates')
 
-auth = Blueprint('auth', __name__, template_folder = 'auth_templates')
-
-@auth.route('/signup', methods = ['GET', 'POST'])
+@auth.route('/signup', methods=['GET', 'POST'])
 def signup():
     form = UserLoginForm()
 
@@ -16,7 +16,7 @@ def signup():
             password = form.password.data
             print(email, password)
 
-            user = User(email, password = password)
+            user = User(email, password=password)
 
             db.session.add(user)
             db.session.commit()
@@ -27,7 +27,7 @@ def signup():
         raise Exception('Invalid form data: Please check your form')
     return render_template('signup.html', form=form)
 
-@auth.route('/signin', methods = ['GET', 'POST'])
+@auth.route('/signin', methods=['GET', 'POST'])
 def signin():
     form = UserLoginForm()
 
@@ -35,7 +35,7 @@ def signin():
         if request.method == 'POST' and form.validate_on_submit():
             email = form.email.data
             password = form.password.data
-            print(email,password)
+            print(email, password)
 
             logged_user = User.query.filter(User.email == email).first()
             if logged_user and check_password_hash(logged_user.password, password):
@@ -46,7 +46,4 @@ def signin():
                 flash('You have failed in your attempt to access this content.', 'auth-failed')
     except:
         raise Exception('Invalid form data: Please check your form')
-    return render_template('sign_in.html', form=form)
-
-
-
+    return render_template('signin.html', form=form)

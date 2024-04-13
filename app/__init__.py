@@ -1,19 +1,35 @@
+# app/__init__.py
+
 from flask import Flask
-from .api.routes import api
-from .site.routes import site
-from .authentication.routes import auth
+from models import db, ma, login_manager
 from config import Config
-from models import db, ma, login_manager 
 from flask_migrate import Migrate
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__, static_url_path='/static')
 
-app.register_blueprint(api)
-app.register_blueprint(site)
-app.register_blueprint(auth)
+    # Register blueprints
+    from .api.routes import api
+    from .site.routes import site
+    from .authentication.routes import auth
+    from .Cars.routes import cars_bp  # Import the cars Blueprint
 
-app.config.from_object(Config)
-db.init_app(app) 
-login_manager.init_app(app)
-ma.init_app(app)
-migrate = Migrate(app, db)
+    app.register_blueprint(api, url_prefix='/api')
+    app.register_blueprint(site)
+    app.register_blueprint(auth)
+    app.register_blueprint(cars_bp, url_prefix='/cars')  # Register the cars Blueprint
+
+    # Configure the Flask application
+    app.config.from_object(Config)
+
+    # Initialize extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+    ma.init_app(app)
+    migrate = Migrate(app, db)
+
+    return app
+
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True)
