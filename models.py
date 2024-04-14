@@ -3,9 +3,17 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 import uuid
+from flask_login import LoginManager
+from flask_marshmallow import Marshmallow 
 import secrets
 
+
+login_manager = LoginManager()
 db = SQLAlchemy()
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
 
 class User(db.Model, UserMixin):
     id = db.Column(db.String(36), primary_key=True, default=uuid.uuid4().hex)
