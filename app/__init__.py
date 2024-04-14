@@ -1,9 +1,8 @@
-# app/__init__.py
-
 from flask import Flask
-from models import db, ma, login_manager
+from models import db
 from config import Config
 from flask_migrate import Migrate
+from flask_login import LoginManager
 
 def create_app():
     app = Flask(__name__, static_url_path='/static')
@@ -21,14 +20,15 @@ def create_app():
 
     # Configure the Flask application
     app.config.from_object(Config)
+    login_manager = LoginManager(app)
 
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    ma.init_app(app)
     migrate = Migrate(app, db)
 
     return app
+
 
 if __name__ == '__main__':
     app = create_app()

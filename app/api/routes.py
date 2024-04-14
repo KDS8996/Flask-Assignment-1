@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from models import Car, db
+from helpers import token_required
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -10,11 +11,13 @@ def get_cars():
     return jsonify(car_list)
 
 @api.route('/cars/<int:id>', methods=['GET'])
+@token_required
 def get_car(id):
     car = Car.query.get_or_404(id)
     return jsonify(car.to_dict())
 
 @api.route('/cars', methods=['POST'])
+@token_required
 def create_car():
     data = request.json
     make = data.get('make')
@@ -31,6 +34,7 @@ def create_car():
     return jsonify(car.to_dict()), 201
 
 @api.route('/cars/<int:id>', methods=['PUT'])
+@token_required
 def update_car(id):
     car = Car.query.get_or_404(id)
     data = request.json
@@ -44,11 +48,12 @@ def update_car(id):
         car.year = data['year']
 
     db.session.commit()
-    return jsonify(car.to_dict())
+    return jsonify(car.to_dict()), 200  # Return 200 status code for successful update
 
 @api.route('/cars/<int:id>', methods=['DELETE'])
+@token_required
 def delete_car(id):
     car = Car.query.get_or_404(id)
     db.session.delete(car)
     db.session.commit()
-    return '', 204
+    return jsonify(message='Car deleted successfully'), 200  # Return 200 status code for successful delete

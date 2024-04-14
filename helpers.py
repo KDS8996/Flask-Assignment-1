@@ -1,67 +1,34 @@
-from flask import Blueprint, jsonify, request
-from flask_login import login_required
-from models import Car, db  # Import the Car model from models
+from functools import wraps
+import secrets
+from flask import request, jsonify, json
+import decimal
+from models import User 
 
-api = Blueprint('api', __name__, url_prefix='/api')
+def token_required(our_flask_function):
+    @wraps(our_flask_function)
+    def decorated(*args, **kwargs):
+        token = None
 
-# Decorator to require token authentication
-def token_required(func):
-    @login_required
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token'].split(' ')[1]
+        if not token:
+            return jsonify({'message': 'Token is missing.'}), 401
 
-@api.route('/cars', methods=['GET'])
-@token_required
-def get_cars():
-    cars = Car.query.all()
-    car_list = [car.to_dict() for car in cars]
-    return jsonify(car_list)
+        try:
+            current_user_token = User.query.filter_by(token = token).first()
+            print(token)
+            print(current_user_token)
+        except:
+            owner=User.query.filter_by(token=token).first()
 
-@api.route('/cars/<int:id>', methods=['GET'])
-@token_required
-def get_car(id):
-    car = Car.query.get_or_404(id)
-    return jsonify(car.to_dict())
+            if token != owner.token and secrets.compare_digest(token, owner.token):
+                return jsonify({'message': 'Token is invalid'})
+        return our_flask_function(current_user_token, *args, **kwargs)
+    return decorated
 
-@api.route('/cars', methods=['POST'])
-@token_required
-def create_car():
-    data = request.json
-    make = data.get('make')
-    model = data.get('model')
-    year = data.get('year')
-
-    if not make or not model or not year:
-        return jsonify({'error': 'Make, model, and year are required'}), 400
-
-    car = Car(make=make, model=model, year=year)
-    db.session.add(car)
-    db.session.commit()
-
-    return jsonify(car.to_dict()), 201
-
-@api.route('/cars/<int:id>', methods=['PUT'])
-@token_required
-def update_car(id):
-    car = Car.query.get_or_404(id)
-    data = request.json
-
-    # Update only valid fields
-    if 'make' in data:
-        car.make = data['make']
-    if 'model' in data:
-        car.model = data['model']
-    if 'year' in data:
-        car.year = data['year']
-
-    db.session.commit()
-    return jsonify(car.to_dict()), 200  # Return 200 status code for successful update
-
-@api.route('/cars/<int:id>', methods=['DELETE'])
-@token_required
-def delete_car(id):
-    car = Car.query.get_or_404(id)
-    db.session.delete(car)
-    db.session.commit()
-    return jsonify(message='Car deleted successfully'), 200  # Return 200 status code for successful delete
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            #Convert decimal instances into strings
+            return str(obj)
+        return super(JSONEncoder,self).default(obj)
